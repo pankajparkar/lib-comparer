@@ -93,6 +93,27 @@
   margin-top: 2rem;
 }
 
+.sort-bar {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.chip {
+  border: 1px solid #ccc;
+  background: #fff;
+  border-radius: 999px;
+  padding: 0.25rem 0.75rem;
+  cursor: pointer;
+}
+
+.chip.active {
+  border-color: #1976d2;
+  color: #1976d2;
+  background: #e8f2fc;
+}
+
 .card-list {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
@@ -112,6 +133,12 @@
 }
 
 .lib-card:hover {
+.lib-stats .help {
+  margin-left: 6px;
+  color: #888;
+  cursor: help;
+  font-size: 12px;
+}
   box-shadow: 0 6px 24px rgba(25, 118, 210, 0.12);
 }
 
@@ -142,6 +169,40 @@
 .npm-link:hover {
   background: #c12127;
   color: #fff;
+}
+
+.skeleton .npm-link {
+  background: #eee;
+  color: transparent;
+}
+
+.shimmer {
+  display: inline-block;
+  background: linear-gradient(90deg, #eee 25%, #f5f5f5 37%, #eee 63%);
+  background-size: 400% 100%;
+  animation: shimmer 1.4s ease infinite;
+  color: transparent;
+  border-radius: 6px;
+}
+
+@keyframes shimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+
+.error-banner {
+  background: #fdecea;
+  color: #b71c1c;
+  border: 1px solid #ffcdd2;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  margin: 1rem 0 0.5rem;
+}
+
+.load-more-row {
+  display: flex;
+  justify-content: center;
+  margin-top: 1.5rem;
 }
 
 .lib-stats {

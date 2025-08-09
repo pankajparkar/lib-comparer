@@ -6,6 +6,9 @@
     <p class="subtitle">Find the best libraries for your needs, with real-time stats from GitHub & npm.</p>
   </header>
 
+  @let isLoading = this.recResource.isLoading();
+  @let err = this.recResource.error();
+  @let recommendations = this.recResource.value();
   <form (ngSubmit)="searchLibraries()" class="lib-comparer-form">
     <div class="form-group">
       <label for="framework">Library/Framework</label>
@@ -20,20 +23,31 @@
       <label for="functionality">Functionality</label>
       <input id="functionality" type="text" [(ngModel)]="functionality" name="functionality" placeholder="e.g. datepicker, select" required />
     </div>
-    <button type="submit" [disabled]="loading" class="primary-btn">
-      @if(!loading) {
+    <button type="submit" [disabled]="isLoading" class="primary-btn">
+      @if(!isLoading) {
         <span>🔍 Recommend</span>
       }
-      @if(loading) {
+      @if(isLoading) {
         <span>⏳ Loading...</span>
       }
     </button>
   </form>
 
-  @let isLoading = this.recResource.isLoading();
-  @let recommendations = this.recResource.value();
+  @if(err) {
+    <div class="error-banner">API error: {{ err.message }}</div>
+  }
 
-  @if(recommendations.length > 0) {
+  @if(recommendations?.length ?? 0 > 0) {
+    <div class="sort-bar">
+      <span>Sort by:</span>
+      <button type="button" class="chip" [class.active]="sortBy() === 'score'" (click)="setSort('score')">Best</button>
+      <button type="button" class="chip" [class.active]="sortBy() === 'stars'" (click)="setSort('stars')">Stars</button>
+      <button type="button" class="chip" [class.active]="sortBy() === 'downloads'" (click)="setSort('downloads')">Downloads</button>
+      <button type="button" class="chip" [class.active]="sortBy() === 'recent'" (click)="setSort('recent')">Recent</button>
+    </div>
+  }
+
+  @if(recommendations?.length ?? 0 > 0) {
     <section class="recommendations">
       <h2>Top Recommendations</h2>
       <div class="card-list">
@@ -47,20 +61,34 @@
             </div>
             <ul class="lib-stats">
               <li><span class="stat-label">⭐ Stars:</span> <strong>{{ lib.stars | number }}</strong></li>
+              <li><span class="stat-label">⬇️ NPM Downloads:</span> <strong>{{ lib.downloads | number }}</strong></li>
+              @if(lib.bundleSize || lib.gzipSize) {
+                <li><span class="stat-label">📦 Bundle:</span>
+                  <strong>
+                    @if(lib.bundleSize) { min {{ (lib.bundleSize!/1024) | number:'1.0-1' }} kB }
+                    @if(lib.gzipSize) {, gzip {{ (lib.gzipSize!/1024) | number:'1.0-1' }} kB }
+                  </strong>
+                  <span class="help" title="Bundle sizes from BundleJS; gzip may be computed in-browser and can vary slightly.">ⓘ</span>
+                </li>
+              }
+              @else {
+                <li><span class="stat-label">📦 Repo Size:</span> <strong>{{ lib.size }}</strong></li>
+              }
               <li><span class="stat-label">🍴 Forks:</span> <strong>{{ lib.forks | number }}</strong></li>
               <li><span class="stat-label">🐛 Issues:</span> <strong>{{ lib.issues | number }}</strong></li>
               <li><span class="stat-label">🕒 Last Activity:</span> <strong>{{ lib.lastActivity | date:'mediumDate' }}</strong></li>
               <li><span class="stat-label">👀 Watchers:</span> <strong>{{ lib.users | number }}</strong></li>
-              <li><span class="stat-label">📦 Size:</span> <strong>{{ lib.size }}</strong></li>
-              <li><span class="stat-label">⬇️ NPM Downloads:</span> <strong>{{ lib.downloads | number }}</strong></li>
             </ul>
           </div>
         }
       </div>
     </section>
+    <div class="load-more-row">
+      <button type="button" class="primary-btn" (click)="loadMore()" [disabled]="isLoading">Load more</button>
+    </div>
   }
 
-  @if(!isLoading && recommendations.length === 0 && selectedFramework && functionality) {
+  @if(!isLoading && recommendations?.length === 0 && selectedFramework && functionality) {
     <section class="no-results">
       <p>No recommendations found. Try a different query.</p>
     </section>
@@ -68,5 +96,20 @@
 
   @if(isLoading) {
     <div class="loading">Loading recommendations...</div>
+    <div class="card-list">
+      @for(_ of [1,2,3,4]; track _) {
+        <div class="lib-card skeleton">
+          <div class="lib-card-header">
+            <h3 class="shimmer" style="width: 50%">&nbsp;</h3>
+            <span class="npm-link shimmer" style="width: 60px">&nbsp;</span>
+          </div>
+          <ul class="lib-stats">
+            @for(i of [1,2,3,4,5,6,7]; track i) {
+              <li><span class="stat-label shimmer" style="width: 140px">&nbsp;</span> <strong class="shimmer" style="width: 80px">&nbsp;</strong></li>
+            }
+          </ul>
+        </div>
+      }
+    </div>
   }
 </div>
