@@ -1,3 +1,4 @@
+import { DatePipe, DecimalPipe } from '@angular/common';
 import { Component, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 
@@ -19,7 +20,7 @@ interface LibraryRecommendation {
     selector: 'lc-lib-comparer',
     templateUrl: './lib-comparer.component.html',
     styleUrls: ['./lib-comparer.component.scss'],
-    imports: [LibComparerComponent, FormsModule],
+    imports: [FormsModule, DecimalPipe, DatePipe],
 })
 export class LibComparerComponent {
     frameworks = [
@@ -55,7 +56,14 @@ export class LibComparerComponent {
                     npmUrl: npmStats.npmUrl
                 });
             }
-            this.recommendations.set(recs);
+            // Sort by best statistics: stars, downloads, forks, watchers (descending)
+            const sorted = recs.sort((a, b) => {
+                // Weighted sum: stars + downloads/100 + forks + users
+                const aScore = a.stars * 2 + a.downloads / 100 + a.forks + a.users;
+                const bScore = b.stars * 2 + b.downloads / 100 + b.forks + b.users;
+                return bScore - aScore;
+            });
+            this.recommendations.set(sorted);
         } catch (err) {
             // Handle error (show message or fallback)
             this.recommendations.set([]);

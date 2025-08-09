@@ -7,53 +7,162 @@
   box-shadow: 0 2px 8px rgba(0,0,0,0.08);
 }
 
-.lib-comparer-form {
+
+.lib-comparer-container {
+  max-width: 900px;
+  margin: 2rem auto;
+  padding: 2rem;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+}
+
+.lib-comparer-header {
   display: flex;
-  gap: 1rem;
   align-items: center;
+  gap: 1.5rem;
   margin-bottom: 2rem;
 }
 
+.lib-comparer-header h1 {
+  font-size: 2.2rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.subtitle {
+  color: #666;
+  font-size: 1.1rem;
+  margin-top: 0.5rem;
+}
+
+.lib-comparer-form {
+  display: flex;
+  gap: 2rem;
+  align-items: flex-end;
+  margin-bottom: 2.5rem;
+  flex-wrap: wrap;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
 .lib-comparer-form label {
-  font-weight: 500;
+  font-weight: 600;
+  color: #333;
 }
 
 .lib-comparer-form select,
 .lib-comparer-form input {
-  padding: 0.5rem;
-  border-radius: 4px;
+  padding: 0.6rem;
+  border-radius: 6px;
   border: 1px solid #ccc;
-  min-width: 180px;
+  min-width: 200px;
+  font-size: 1rem;
 }
 
-.lib-comparer-form button {
-  padding: 0.5rem 1.5rem;
-  background: #1976d2;
+.primary-btn {
+  padding: 0.7rem 2rem;
+  background: linear-gradient(90deg, #1976d2 60%, #512da8 100%);
   color: #fff;
   border: none;
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
-  font-weight: 600;
+  font-weight: 700;
+  font-size: 1.1rem;
+  box-shadow: 0 2px 8px rgba(25, 118, 210, 0.08);
+  transition: background 0.2s;
+}
+
+.primary-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
 }
 
 .loading {
   color: #1976d2;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+  font-size: 1.1rem;
+}
+
+.recommendations {
+  margin-top: 2rem;
+}
+
+.card-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 2rem;
+  margin-top: 1.5rem;
+}
+
+.lib-card {
+  background: #fafbfc;
+  border-radius: 10px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  padding: 1.5rem 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  transition: box-shadow 0.2s;
+}
+
+.lib-card:hover {
+  box-shadow: 0 6px 24px rgba(25, 118, 210, 0.12);
+}
+
+.lib-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.lib-card-header h3 {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.npm-link {
+  background: #e5e5e5;
+  color: #c12127;
+  font-weight: 600;
+  padding: 0.3rem 0.8rem;
+  border-radius: 5px;
+  text-decoration: none;
+  font-size: 1rem;
+  transition: background 0.2s;
+}
+
+.npm-link:hover {
+  background: #c12127;
+  color: #fff;
+}
+
+.lib-stats {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.7rem 1.2rem;
+  font-size: 1rem;
+}
+
+.stat-label {
+  color: #555;
   font-weight: 500;
-  margin-bottom: 1rem;
+  margin-right: 0.3rem;
 }
 
-.recommendations table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 1rem;
-}
-
-.recommendations th, .recommendations td {
-  border: 1px solid #eee;
-  padding: 0.75rem;
-  text-align: left;
-}
-
-.recommendations th {
-  background: #f5f5f5;
+.no-results {
+  color: #c12127;
+  font-weight: 600;
+  margin-top: 2rem;
+  font-size: 1.1rem;
 }

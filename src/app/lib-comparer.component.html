@@ -1,59 +1,71 @@
+
 <div class="lib-comparer-container">
-  <h2>Library/Framework Recommendation</h2>
+  <header class="lib-comparer-header">
+    <img src="https://raw.githubusercontent.com/angular/angular/main/aio/src/assets/images/logos/angular/angular.svg" alt="Lib Comparer Logo" width="48" height="48" />
+    <h1>Library & Framework Comparer</h1>
+    <p class="subtitle">Find the best libraries for your needs, with real-time stats from GitHub & npm.</p>
+  </header>
+
   <form (ngSubmit)="searchLibraries()" class="lib-comparer-form">
-    <label for="framework">Library/Framework:</label>
-    <select id="framework" [(ngModel)]="selectedFramework" name="framework" required>
-      <option value="" disabled selected>Select a framework</option>
-      @for(fw of frameworks; track fw) {
-        <option [value]="fw">{{ fw }}</option>
+    <div class="form-group">
+      <label for="framework">Library/Framework</label>
+      <select id="framework" [(ngModel)]="selectedFramework" name="framework" required>
+        <option value="" disabled selected>Select a framework</option>
+        @for(fw of frameworks; track fw) {
+          <option [value]="fw">{{ fw }}</option>
+        }
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="functionality">Functionality</label>
+      <input id="functionality" type="text" [(ngModel)]="functionality" name="functionality" placeholder="e.g. datepicker, select" required />
+    </div>
+    <button type="submit" [disabled]="loading" class="primary-btn">
+      @if(!loading) {
+        <span>🔍 Recommend</span>
       }
-    </select>
-    <label for="functionality">Functionality:</label>
-    <input id="functionality" type="text" [(ngModel)]="functionality" name="functionality" placeholder="e.g. datepicker, select" required />
-    <button type="submit" [disabled]="loading">Recommend</button>
+      @if(loading) {
+        <span>⏳ Loading...</span>
+      }
+    </button>
   </form>
 
   @let recommendations = this.recommendations();
 
+  @if(recommendations.length > 0) {
+    <section class="recommendations">
+      <h2>Top Recommendations</h2>
+      <div class="card-list">
+        @for(lib of recommendations; track lib.name) {
+          <div class="lib-card">
+            <div class="lib-card-header">
+              <h3>
+                <a [href]="lib.repoUrl" target="_blank" rel="noopener">{{ lib.name }}</a>
+              </h3>
+              <a [href]="lib.npmUrl" target="_blank" rel="noopener" class="npm-link">NPM</a>
+            </div>
+            <ul class="lib-stats">
+              <li><span class="stat-label">⭐ Stars:</span> <strong>{{ lib.stars | number }}</strong></li>
+              <li><span class="stat-label">🍴 Forks:</span> <strong>{{ lib.forks | number }}</strong></li>
+              <li><span class="stat-label">🐛 Issues:</span> <strong>{{ lib.issues | number }}</strong></li>
+              <li><span class="stat-label">🕒 Last Activity:</span> <strong>{{ lib.lastActivity | date:'mediumDate' }}</strong></li>
+              <li><span class="stat-label">👀 Watchers:</span> <strong>{{ lib.users | number }}</strong></li>
+              <li><span class="stat-label">📦 Size:</span> <strong>{{ lib.size }}</strong></li>
+              <li><span class="stat-label">⬇️ NPM Downloads:</span> <strong>{{ lib.downloads | number }}</strong></li>
+            </ul>
+          </div>
+        }
+      </div>
+    </section>
+  }
+
+  @if(!loading && recommendations.length === 0 && selectedFramework && functionality) {
+    <section class="no-results">
+      <p>No recommendations found. Try a different query.</p>
+    </section>
+  }
+
   @if(loading) {
     <div class="loading">Loading recommendations...</div>
   }
-
-  @if(!loading && recommendations.length === 0) {
-    <div class="no-results">No recommendations found.</div>
-  }
-
-  @if(recommendations.length > 0) {
-    <div class="recommendations">
-      <h3>Recommended Libraries</h3>
-      <table>
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>GitHub Stars</th>
-          <th>Forks</th>
-          <th>Open Issues</th>
-          <th>Last Activity</th>
-          <th>Users on GitHub</th>
-          <th>Package Size</th>
-          <th>NPM Downloads</th>
-        </tr>
-      </thead>
-      <tbody>
-        @for(lib of recommendations; track lib.id) {
-          <tr>
-            <td>{{ lib.name }}</td>
-            <td>{{ lib.stars }}</td>
-            <td>{{ lib.forks }}</td>
-            <td>{{ lib.issues }}</td>
-            <td>{{ lib.lastActivity }}</td>
-            <td>{{ lib.users }}</td>
-            <td>{{ lib.size }}</td>
-            <td>{{ lib.downloads }}</td>
-          </tr>
-        }
-      </tbody>
-      </table>
-    </div>
-    }
 </div>
