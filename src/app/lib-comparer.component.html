@@ -30,7 +30,8 @@
     </button>
   </form>
 
-  @let recommendations = this.recommendations();
+  @let isLoading = this.recResource.isLoading();
+  @let recommendations = this.recResource.value();
 
   @if(recommendations.length > 0) {
     <section class="recommendations">
@@ -59,13 +60,13 @@
     </section>
   }
 
-  @if(!loading && recommendations.length === 0 && selectedFramework && functionality) {
+  @if(!isLoading && recommendations.length === 0 && selectedFramework && functionality) {
     <section class="no-results">
       <p>No recommendations found. Try a different query.</p>
     </section>
   }
 
-  @if(loading) {
+  @if(isLoading) {
     <div class="loading">Loading recommendations...</div>
   }
 </div>

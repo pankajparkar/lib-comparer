@@ -1,5 +1,5 @@
 import { DatePipe, DecimalPipe } from '@angular/common';
-import { Component, signal } from '@angular/core';
+import { Component, signal, resource, effect } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 
 interface LibraryRecommendation {
@@ -28,21 +28,40 @@ export class LibComparerComponent {
     ];
     selectedFramework = '';
     functionality = '';
-    recommendations = signal<LibraryRecommendation[]>([]);
     loading = false;
 
-    async searchLibraries() {
-        this.loading = true;
-        this.recommendations.set([]);
-        const query = `${this.selectedFramework} ${this.functionality}`;
-        try {
-            // Search GitHub repositories
-            const githubResults: any[] = await this.fetchGithubRepos(query);
-            // For each repo, fetch npm stats and build recommendation
-            const recs: LibraryRecommendation[] = [];
-            for (const repo of githubResults) {
-                const npmStats = await this.fetchNpmStats(repo.name);
-                recs.push({
+    // Trigger signal for Resource API
+    private readonly query = signal<{ framework: string; functionality: string } | null>(null);
+
+    // Resource that loads recommendations using GitHub + npm APIs
+    private readonly recResource = resource<LibraryRecommendation[], {
+        framework: string;
+        functionality: string;
+    } | null>({
+        params: () => this.query(),
+        loader: async ({ params }) => {
+            if (!params) return [];
+            const { framework, functionality } = params;
+            const search = `${framework} ${functionality}`.trim();
+
+            // GitHub search
+            const ghUrl = `https://api.github.com/search/repositories?q=${encodeURIComponent(search)}&sort=stars&order=desc&per_page=5`;
+            const ghRes = await fetch(ghUrl);
+            const ghData = await ghRes.json();
+            const items: any[] = ghData?.items ?? [];
+
+            // For each repo, also fetch npm stats in parallel
+            const mapped = await Promise.all(items.map(async (repo) => {
+                const pkgName = repo.name as string;
+                const npmUrl = `https://www.npmjs.com/package/${pkgName}`;
+                const npmApi = `https://api.npmjs.org/downloads/point/last-month/${encodeURIComponent(pkgName)}`;
+                let downloads = 0;
+                try {
+                    const nRes = await fetch(npmApi);
+                    const nData = await nRes.json();
+                    downloads = nData?.downloads ?? 0;
+                } catch { /* ignore */ }
+                const rec: LibraryRecommendation = {
                     id: repo.id,
                     name: repo.name,
                     stars: repo.stargazers_count,
@@ -51,45 +70,19 @@ export class LibComparerComponent {
                     lastActivity: repo.pushed_at,
                     users: repo.watchers_count,
                     size: `${repo.size} KB`,
-                    downloads: npmStats.downloads,
+                    downloads,
                     repoUrl: repo.html_url,
-                    npmUrl: npmStats.npmUrl
-                });
-            }
-            // Sort by best statistics: stars, downloads, forks, watchers (descending)
-            const sorted = recs.sort((a, b) => {
-                // Weighted sum: stars + downloads/100 + forks + users
+                    npmUrl,
+                };
+                return rec;
+            }));
+
+            // Sort best-first
+            return mapped.sort((a, b) => {
                 const aScore = a.stars * 2 + a.downloads / 100 + a.forks + a.users;
                 const bScore = b.stars * 2 + b.downloads / 100 + b.forks + b.users;
                 return bScore - aScore;
             });
-            this.recommendations.set(sorted);
-        } catch (err) {
-            // Handle error (show message or fallback)
-            this.recommendations.set([]);
         }
-        this.loading = false;
-    }
-
-    async fetchGithubRepos(query: string): Promise<any[]> {
-        const url = `https://api.github.com/search/repositories?q=${encodeURIComponent(query)}&sort=stars&order=desc&per_page=5`;
-        const res = await fetch(url);
-        const data = await res.json();
-        return data.items || [];
-    }
-
-    async fetchNpmStats(pkgName: string): Promise<{ downloads: number, npmUrl: string }> {
-        // Get npm downloads (last month)
-        const url = `https://api.npmjs.org/downloads/point/last-month/${encodeURIComponent(pkgName)}`;
-        let downloads = 0;
-        let npmUrl = `https://www.npmjs.com/package/${pkgName}`;
-        try {
-            const res = await fetch(url);
-            const data = await res.json();
-            downloads = data.downloads || 0;
-        } catch {
-            downloads = 0;
-        }
-        return { downloads, npmUrl };
-    }
+    });
 }
