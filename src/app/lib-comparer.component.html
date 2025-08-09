@@ -4,18 +4,29 @@
     <label for="framework">Library/Framework:</label>
     <select id="framework" [(ngModel)]="selectedFramework" name="framework" required>
       <option value="" disabled selected>Select a framework</option>
-      <option *ngFor="let fw of frameworks" [value]="fw">{{ fw }}</option>
+      @for(fw of frameworks; track fw) {
+        <option [value]="fw">{{ fw }}</option>
+      }
     </select>
     <label for="functionality">Functionality:</label>
     <input id="functionality" type="text" [(ngModel)]="functionality" name="functionality" placeholder="e.g. datepicker, select" required />
     <button type="submit" [disabled]="loading">Recommend</button>
   </form>
 
-  <div *ngIf="loading" class="loading">Loading recommendations...</div>
+  @let recommendations = this.recommendations();
 
-  <div *ngIf="recommendations.length > 0" class="recommendations">
-    <h3>Recommended Libraries</h3>
-    <table>
+  @if(loading) {
+    <div class="loading">Loading recommendations...</div>
+  }
+
+  @if(!loading && recommendations.length === 0) {
+    <div class="no-results">No recommendations found.</div>
+  }
+
+  @if(recommendations.length > 0) {
+    <div class="recommendations">
+      <h3>Recommended Libraries</h3>
+      <table>
       <thead>
         <tr>
           <th>Name</th>
@@ -29,17 +40,20 @@
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let lib of recommendations">
-          <td>{{ lib.name }}</td>
-          <td>{{ lib.stars }}</td>
-          <td>{{ lib.forks }}</td>
-          <td>{{ lib.issues }}</td>
-          <td>{{ lib.lastActivity }}</td>
-          <td>{{ lib.users }}</td>
-          <td>{{ lib.size }}</td>
-          <td>{{ lib.downloads }}</td>
-        </tr>
+        @for(lib of recommendations; track lib.id) {
+          <tr>
+            <td>{{ lib.name }}</td>
+            <td>{{ lib.stars }}</td>
+            <td>{{ lib.forks }}</td>
+            <td>{{ lib.issues }}</td>
+            <td>{{ lib.lastActivity }}</td>
+            <td>{{ lib.users }}</td>
+            <td>{{ lib.size }}</td>
+            <td>{{ lib.downloads }}</td>
+          </tr>
+        }
       </tbody>
-    </table>
-  </div>
+      </table>
+    </div>
+    }
 </div>

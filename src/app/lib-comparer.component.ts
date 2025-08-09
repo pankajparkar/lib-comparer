@@ -1,5 +1,19 @@
-import { Component } from '@angular/core';
+import { Component, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+
+interface LibraryRecommendation {
+    id: number;
+    name: string;
+    stars: number;
+    forks: number;
+    issues: number;
+    lastActivity: string;
+    users: number;
+    size: string;
+    downloads: number;
+    repoUrl: string;
+    npmUrl: string;
+}
 
 @Component({
     selector: 'lc-lib-comparer',
@@ -13,34 +27,61 @@ export class LibComparerComponent {
     ];
     selectedFramework = '';
     functionality = '';
-    recommendations: any[] = [];
+    recommendations = signal<LibraryRecommendation[]>([]);
     loading = false;
 
     async searchLibraries() {
         this.loading = true;
-        // TODO: Replace with real API call to fetch recommendations
-        this.recommendations = [
-            {
-                name: 'ngx-datepicker',
-                stars: 1200,
-                forks: 150,
-                issues: 12,
-                lastActivity: '2025-08-01',
-                users: 5000,
-                size: '120KB',
-                downloads: 20000
-            },
-            {
-                name: 'ng-select',
-                stars: 3000,
-                forks: 400,
-                issues: 5,
-                lastActivity: '2025-07-20',
-                users: 12000,
-                size: '80KB',
-                downloads: 50000
+        this.recommendations.set([]);
+        const query = `${this.selectedFramework} ${this.functionality}`;
+        try {
+            // Search GitHub repositories
+            const githubResults: any[] = await this.fetchGithubRepos(query);
+            // For each repo, fetch npm stats and build recommendation
+            const recs: LibraryRecommendation[] = [];
+            for (const repo of githubResults) {
+                const npmStats = await this.fetchNpmStats(repo.name);
+                recs.push({
+                    id: repo.id,
+                    name: repo.name,
+                    stars: repo.stargazers_count,
+                    forks: repo.forks_count,
+                    issues: repo.open_issues_count,
+                    lastActivity: repo.pushed_at,
+                    users: repo.watchers_count,
+                    size: `${repo.size} KB`,
+                    downloads: npmStats.downloads,
+                    repoUrl: repo.html_url,
+                    npmUrl: npmStats.npmUrl
+                });
             }
-        ];
+            this.recommendations.set(recs);
+        } catch (err) {
+            // Handle error (show message or fallback)
+            this.recommendations.set([]);
+        }
         this.loading = false;
+    }
+
+    async fetchGithubRepos(query: string): Promise<any[]> {
+        const url = `https://api.github.com/search/repositories?q=${encodeURIComponent(query)}&sort=stars&order=desc&per_page=5`;
+        const res = await fetch(url);
+        const data = await res.json();
+        return data.items || [];
+    }
+
+    async fetchNpmStats(pkgName: string): Promise<{ downloads: number, npmUrl: string }> {
+        // Get npm downloads (last month)
+        const url = `https://api.npmjs.org/downloads/point/last-month/${encodeURIComponent(pkgName)}`;
+        let downloads = 0;
+        let npmUrl = `https://www.npmjs.com/package/${pkgName}`;
+        try {
+            const res = await fetch(url);
+            const data = await res.json();
+            downloads = data.downloads || 0;
+        } catch {
+            downloads = 0;
+        }
+        return { downloads, npmUrl };
     }
 }
