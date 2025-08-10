@@ -2,6 +2,7 @@ import { DatePipe, DecimalPipe } from '@angular/common';
 import { Component, signal, resource, ChangeDetectionStrategy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RecommendationShimmerComponent } from './recommendation-shimmer.component';
+import { NavbarComponent } from './navbar.component';
 
 interface LibraryRecommendation {
     id: number;
@@ -23,7 +24,7 @@ interface LibraryRecommendation {
     selector: 'lc-lib-comparer',
     templateUrl: './lib-comparer.component.html',
     styleUrls: ['./lib-comparer.component.scss'],
-    imports: [FormsModule, DecimalPipe, DatePipe, RecommendationShimmerComponent],
+    imports: [FormsModule, DecimalPipe, DatePipe, RecommendationShimmerComponent, NavbarComponent],
     changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class LibComparerComponent {
