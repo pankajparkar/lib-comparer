@@ -84,6 +84,14 @@
               "src/styles.scss"
             ]
           }
+        },
+        "deploy": {
+          "builder": "angular-cli-ghpages:deploy",
+          "options": {
+            "buildTarget": "lib-comparer:build:production",
+            "baseHref": "/lib-comparer/",
+            "dir": "dist/lib-comparer/browser"
+          }
         }
       }
     }
