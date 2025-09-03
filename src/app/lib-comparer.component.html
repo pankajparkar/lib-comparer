@@ -79,6 +79,13 @@
               <li><span class="stat-label">🐛 Issues:</span> <strong>{{ lib.issues | number }}</strong></li>
               <li><span class="stat-label">🕒 Last Activity:</span> <strong>{{ lib.lastActivity | date:'mediumDate' }}</strong></li>
               <li><span class="stat-label">👀 Watchers:</span> <strong>{{ lib.users | number }}</strong></li>
+              @if(lib.coveragePct !== undefined) {
+                <li><span class="stat-label">🧪 Coverage:</span>
+                  <strong>
+                    <span class="cov-badge" [class.good]="lib.coveragePct >= 80" [class.ok]="lib.coveragePct >= 50 && lib.coveragePct < 80" [class.low]="lib.coveragePct < 50" title="Source: {{ lib.coverageSource || 'unknown' }}">{{ lib.coveragePct | number:'1.0-1' }}%</span>
+                  </strong>
+                </li>
+              }
             </ul>
           </div>
         }
