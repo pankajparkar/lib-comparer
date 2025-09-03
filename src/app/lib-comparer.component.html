@@ -58,6 +58,18 @@
               <h3>
                 <a [href]="lib.repoUrl" target="_blank" rel="noopener">{{ lib.name }}</a>
               </h3>
+              @if(lib.vulnerable !== undefined) {
+                <span class="sec-indicator"
+                  [class.ok]="!lib.vulnerable"
+                  [class.warn]="lib.vulnerable"
+                  [class.critical]="lib.maxSeverityLabel==='critical'"
+                  [class.high]="lib.maxSeverityLabel==='high'"
+                  [class.medium]="lib.maxSeverityLabel==='medium'"
+                  [title]="!lib.vulnerable ? 'No known vulnerabilities' : (lib.vulnCount + ' vulnerability(ies); highest: ' + lib.maxSeverityLabel + (lib.maxCvss ? ' (CVSS ' + lib.maxCvss + ')' : ''))">
+                  @if(!lib.vulnerable) { 🛡 }
+                  @if(lib.vulnerable) { 🛡 {{ lib.vulnCount }} }
+                </span>
+              }
               <a [href]="lib.npmUrl" target="_blank" rel="noopener" class="npm-link">NPM</a>
             </div>
             <ul class="lib-stats">
@@ -83,6 +95,16 @@
                 <li><span class="stat-label">🧪 Coverage:</span>
                   <strong>
                     <span class="cov-badge" [class.good]="lib.coveragePct >= 80" [class.ok]="lib.coveragePct >= 50 && lib.coveragePct < 80" [class.low]="lib.coveragePct < 50" title="Source: {{ lib.coverageSource || 'unknown' }}">{{ lib.coveragePct | number:'1.0-1' }}%</span>
+                  </strong>
+                </li>
+              }
+              @if(lib.vulnerable !== undefined) {
+                <li><span class="stat-label">🛡 Security:</span>
+                  <strong>
+                    @if(!lib.vulnerable) { <span class="sec-badge ok" title="No known vulnerabilities via OSV.dev">Secure</span> }
+                    @if(lib.vulnerable) {
+                      <span class="sec-badge warn" [class.critical]="lib.maxSeverityLabel==='critical'" [class.high]="lib.maxSeverityLabel==='high'" [class.medium]="lib.maxSeverityLabel==='medium'" [title]="lib.vulnCount + ' vulnerability(ies); highest: ' + lib.maxSeverityLabel + (lib.maxCvss ? ' (CVSS ' + lib.maxCvss + ')' : '')">{{ lib.vulnCount }} vuln{{ lib.vulnCount === 1 ? '' : 's' }} ({{ lib.maxSeverityLabel }})</span>
+                    }
                   </strong>
                 </li>
               }

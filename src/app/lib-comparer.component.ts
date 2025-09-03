@@ -7,6 +7,7 @@ import { NavbarComponent } from './navbar.component';
 interface LibraryRecommendation {
     id: number;
     name: string;
+    packageName: string;
     stars: number;
     forks: number;
     issues: number;
@@ -20,6 +21,10 @@ interface LibraryRecommendation {
     npmUrl: string;
     coveragePct?: number; // 0-100
     coverageSource?: string; // where we derived it from
+    vulnerable?: boolean;
+    vulnCount?: number;
+    maxCvss?: number;
+    maxSeverityLabel?: string; // critical/high/medium/low
 }
 
 @Component({
@@ -188,6 +193,7 @@ export class LibComparerComponent {
                 const rec: LibraryRecommendation = {
                     id: repo.id,
                     name: repo.name,
+                    packageName: pkgName,
                     stars: repo.stargazers_count,
                     forks: repo.forks_count,
                     issues: repo.open_issues_count,
@@ -204,6 +210,54 @@ export class LibComparerComponent {
                 };
                 return rec;
             }));
+
+            // Batch vulnerability lookup via OSV.dev
+            try {
+                if (mapped.length) {
+                    const body = {
+                        queries: mapped.map(r => ({ package: { name: r.packageName, ecosystem: 'npm' } }))
+                    } as const;
+                    const osvRes = await fetch('https://api.osv.dev/v1/querybatch', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(body)
+                    });
+                    if (osvRes.ok) {
+                        const osvData: any = await osvRes.json();
+                        const results: any[] = Array.isArray(osvData?.results) ? osvData.results : [];
+                        results.forEach((res, idx) => {
+                            const vulns: any[] = res?.vulns || [];
+                            if (!vulns.length) return;
+                            const rec = mapped[idx];
+                            if (!rec) return;
+                            rec.vulnerable = true;
+                            rec.vulnCount = vulns.length;
+                            // Derive max CVSS and label
+                            let maxCvss = 0;
+                            for (const v of vulns) {
+                                const sevArr = v?.severity;
+                                if (Array.isArray(sevArr)) {
+                                    for (const s of sevArr) {
+                                        if (s?.score) {
+                                            const num = parseFloat(String(s.score));
+                                            if (!isNaN(num) && num > maxCvss) maxCvss = num;
+                                        }
+                                    }
+                                }
+                            }
+                            if (maxCvss > 0) rec.maxCvss = Math.round(maxCvss * 10) / 10;
+                            const score = rec.maxCvss ?? 0;
+                            let label = 'low';
+                            if (score >= 9) label = 'critical';
+                            else if (score >= 7) label = 'high';
+                            else if (score >= 4) label = 'medium';
+                            rec.maxSeverityLabel = label;
+                        });
+                        // Mark those without vulns explicitly as secure for clarity
+                        mapped.forEach(r => { if (r.vulnerable !== true) { r.vulnerable = false; r.vulnCount = 0; } });
+                    }
+                }
+            } catch { /* ignore vulnerability errors */ }
 
             // Sort on the server-side result based on sortBy
             const sorted = [...mapped];
