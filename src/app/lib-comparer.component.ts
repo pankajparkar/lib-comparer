@@ -3,6 +3,7 @@ import { Component, signal, resource, ChangeDetectionStrategy } from '@angular/c
 import { FormsModule } from '@angular/forms';
 import { RecommendationShimmerComponent } from './recommendation-shimmer.component';
 import { NavbarComponent } from './navbar.component';
+import { AiAssistComponent } from './ai-assist.component';
 
 interface LibraryRecommendation {
     id: number;
@@ -31,7 +32,7 @@ interface LibraryRecommendation {
     selector: 'lc-lib-comparer',
     templateUrl: './lib-comparer.component.html',
     styleUrls: ['./lib-comparer.component.scss'],
-    imports: [FormsModule, DecimalPipe, DatePipe, RecommendationShimmerComponent, NavbarComponent],
+    imports: [FormsModule, DecimalPipe, DatePipe, RecommendationShimmerComponent, NavbarComponent, AiAssistComponent],
     changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class LibComparerComponent {
@@ -317,5 +318,11 @@ export class LibComparerComponent {
                 if (p.functionality) this.functionality = p.functionality;
             }
         } catch { /* ignore */ }
+    }
+
+    onAIExtract(payload: { framework: string; functionality: string }) {
+        this.selectedFramework = payload.framework;
+        this.functionality = payload.functionality;
+        this.searchLibraries();
     }
 }

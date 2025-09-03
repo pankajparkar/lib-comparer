@@ -24,7 +24,7 @@
       <label for="functionality">Functionality</label>
       <input id="functionality" type="text" [(ngModel)]="functionality" name="functionality" placeholder="e.g. datepicker, select" required />
     </div>
-    <button type="submit" [disabled]="isLoading" class="primary-btn">
+  <button type="submit" [disabled]="isLoading" class="primary-btn">
       @if(!isLoading) {
         <span>🔍 Recommend</span>
       }
@@ -32,6 +32,7 @@
         <span>⏳ Loading...</span>
       }
     </button>
+  <lc-ai-assist [frameworks]="frameworks" (extracted)="onAIExtract($event)"></lc-ai-assist>
   </form>
 
   @if(err) {
