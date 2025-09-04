@@ -40,18 +40,154 @@ declare const LanguageModel: any; // Experimental global
         }
     `,
     styles: [`
-    :host { display:block; }
-    .ai-assist { margin-top:.75rem; display:flex; flex-direction:column; gap:.4rem; }
-    .ai-label { font-size:.75rem; font-weight:600; letter-spacing:.5px; opacity:.85; }
-    .row { display:flex; gap:.5rem; align-items:stretch; }
-    textarea { flex:1; resize:vertical; background:rgba(15,23,42,.55); border:1px solid var(--border); border-radius:8px; padding:.55rem .65rem; color:var(--text); font:inherit; }
-    textarea:focus { outline:none; border-color: color-mix(in srgb, var(--accent1) 60%, var(--accent2)); box-shadow:0 0 0 2px rgba(139,92,246,.25); }
-    .actions { display:flex; flex-direction:column; gap:.5rem; }
-    .chip { cursor:pointer; background:rgba(148,163,184,0.15); border:1px solid var(--border); padding:.45rem .65rem; border-radius:20px; font-size:.65rem; white-space:nowrap; }
-    .chip.active { background:linear-gradient(90deg,var(--accent1),var(--accent2)); color:#fff; }
-    .chip:disabled { opacity:.5; cursor:not-allowed; }
-    .msg { font-size:.65rem; color:var(--muted); }
-    .msg.off { color: var(--muted); font-style:italic; }
+    :host { 
+      display: block; 
+      margin-top: var(--space-lg);
+    }
+    
+    .ai-assist { 
+      display: flex; 
+      flex-direction: column; 
+      gap: var(--space-md);
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-lg);
+    }
+    
+    .ai-label { 
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-text);
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+    }
+    
+    .ai-label::before {
+      content: '🤖';
+      font-size: var(--font-size-base);
+    }
+    
+    .row { 
+      display: flex; 
+      gap: var(--space-md); 
+      align-items: stretch; 
+    }
+    
+    textarea { 
+      flex: 1; 
+      resize: vertical; 
+      background: var(--color-surface-elevated);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      padding: var(--space-md);
+      color: var(--color-text);
+      font: inherit;
+      font-size: var(--font-size-sm);
+      line-height: var(--line-height-normal);
+      transition: all var(--transition-normal);
+      outline: none;
+    }
+    
+    textarea:focus { 
+      border-color: var(--color-primary);
+      box-shadow: 0 0 0 3px var(--color-primary-light);
+    }
+    
+    textarea::placeholder {
+      color: var(--color-text-subtle);
+    }
+    
+    .actions { 
+      display: flex; 
+      flex-direction: column; 
+      gap: var(--space-sm);
+      min-width: 120px;
+    }
+    
+    .chip { 
+      cursor: pointer;
+      background: var(--color-surface-elevated);
+      border: 1px solid var(--color-border);
+      padding: var(--space-sm) var(--space-md);
+      border-radius: var(--radius-lg);
+      font-size: var(--font-size-xs);
+      font-weight: var(--font-weight-medium);
+      white-space: nowrap;
+      color: var(--color-text-muted);
+      transition: all var(--transition-normal);
+      text-align: center;
+    }
+    
+    .chip:hover:not(:disabled) {
+      background: var(--color-surface-hover);
+      border-color: var(--color-border-strong);
+      color: var(--color-text);
+    }
+    
+    .chip.active { 
+      background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+      border-color: var(--color-primary);
+      color: white;
+    }
+    
+    .chip:disabled { 
+      opacity: 0.5; 
+      cursor: not-allowed;
+    }
+    
+    .msg { 
+      font-size: var(--font-size-xs);
+      color: var(--color-text-muted);
+      padding: var(--space-sm);
+      background: var(--color-surface);
+      border-radius: var(--radius-md);
+      border: 1px solid var(--color-border);
+    }
+    
+    .msg.off { 
+      color: var(--color-text-subtle);
+      font-style: italic;
+      background: transparent;
+      border: none;
+      padding: 0;
+    }
+    
+    /* Mobile responsiveness */
+    @media (max-width: 640px) {
+      .row {
+        flex-direction: column;
+        gap: var(--space-sm);
+      }
+      
+      .actions {
+        flex-direction: row;
+        min-width: auto;
+      }
+      
+      .chip {
+        flex: 1;
+      }
+    }
+    
+    /* High contrast mode */
+    @media (prefers-contrast: high) {
+      .ai-assist,
+      textarea,
+      .chip,
+      .msg {
+        border-width: 2px;
+      }
+    }
+    
+    /* Reduced motion */
+    @media (prefers-reduced-motion: reduce) {
+      textarea,
+      .chip {
+        transition: none;
+      }
+    }
   `]
 })
 export class AiAssistComponent {

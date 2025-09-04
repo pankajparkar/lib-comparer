@@ -1,0 +1,20 @@
+/* App component styles */
+:host {
+    display: block;
+    min-height: 100vh;
+    background: var(--color-background);
+    transition: background-color var(--transition-normal);
+}
+
+.app-main {
+    min-height: calc(100vh - 80px);
+    padding: var(--space-lg) var(--space-md);
+
+    @media (min-width: 768px) {
+        padding: var(--space-xl) var(--space-lg);
+    }
+
+    @media (min-width: 1024px) {
+        padding: var(--space-2xl) var(--space-xl);
+    }
+}
