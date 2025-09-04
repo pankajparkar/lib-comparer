@@ -161,7 +161,7 @@ import { Component, ChangeDetectionStrategy, input } from '@angular/core';
   `]
 })
 export class NavbarComponent {
-  readonly title = input('Lib Comparer');
+  readonly title = input('JSLibDetective');
   readonly logoSrc = input('/logo.svg');
   readonly repoUrl = input('https://github.com/pankajparkar/lib-comparer');
 }

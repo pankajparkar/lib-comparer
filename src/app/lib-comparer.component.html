@@ -1,18 +1,42 @@
 <div class="hero-section">
   <div class="hero-content">
     <div class="hero-badge">
-      <span class="badge-icon">🚀</span>
-      <span>Open Source Tool</span>
+      <img src="/logo.svg" alt="JSLibDetective Logo" class="badge-logo" width="24" height="24" />
+      <span>JSLibDetective</span>
     </div>
     <h1 class="hero-title">
-      Find the Perfect
-      <span class="gradient-text">Library</span>
-      for Your Project
+      Detect the Perfect
+      <span class="gradient-text">JavaScript Library</span>
+      for Your Case
     </h1>
     <p class="hero-description">
-      Compare libraries and frameworks with real-time GitHub & npm statistics.
+      Investigate libraries and frameworks with real-time GitHub & npm statistics.
       Make informed decisions with security insights, bundle sizes, and community metrics.
     </p>
+
+    <div class="hero-features">
+      <div class="feature-item">
+        <div class="feature-icon">📊</div>
+        <div class="feature-content">
+          <h3>Real-time Stats</h3>
+          <p>Live GitHub stars, downloads, and activity</p>
+        </div>
+      </div>
+      <div class="feature-item">
+        <div class="feature-icon">🛡️</div>
+        <div class="feature-content">
+          <h3>Security Analysis</h3>
+          <p>Vulnerability scanning and security insights</p>
+        </div>
+      </div>
+      <div class="feature-item">
+        <div class="feature-icon">📦</div>
+        <div class="feature-content">
+          <h3>Bundle Analysis</h3>
+          <p>Size optimization and performance metrics</p>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -344,9 +368,33 @@
       stroke-width="2">
       <path d="M21 12a9 9 0 11-6.219-8.56" />
     </svg>
-    <h3>Finding the best libraries...</h3>
+    <h3>Investigating libraries...</h3>
     <p>Analyzing GitHub repositories and npm packages</p>
   </div>
   <lc-recommendation-shimmer [count]="4"></lc-recommendation-shimmer>
 </div>
 }
+
+<div class="footer-section">
+  <div class="footer-content">
+    <div class="footer-info">
+      <h3>Why JSLibDetective?</h3>
+      <p>We analyze thousands of JavaScript libraries to help you make informed decisions. Our detective work includes
+        real-time GitHub stats, security scanning, bundle analysis, and community health metrics.</p>
+    </div>
+    <div class="footer-stats">
+      <div class="stat-item">
+        <span class="stat-number">10K+</span>
+        <span class="stat-label">Libraries Analyzed</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-number">Real-time</span>
+        <span class="stat-label">GitHub & npm Data</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-number">100%</span>
+        <span class="stat-label">Open Source</span>
+      </div>
+    </div>
+  </div>
+</div>
