@@ -18,25 +18,27 @@ declare const LanguageModel: any; // Experimental global
     imports: [FormsModule],
     changeDetection: ChangeDetectionStrategy.OnPush,
     template: `
-  @if(aiSupported()) {
-    <div class="ai-assist">
-      <label class="ai-label">AI Assist</label>
-      <div class="row">
-        <textarea rows="2" [disabled]="aiBusy()" [ngModel]="aiInput()" (ngModelChange)="aiInput.set($event)" placeholder="Describe e.g. 'Angular date picker' or speak it..."></textarea>
-        <div class="col actions">
-          <button type="button" class="chip" (click)="runExtraction()" [disabled]="aiBusy()">@if(!aiBusy()){Extract}@if(aiBusy()){…}</button>
-          <button type="button" class="chip" [class.active]="aiListening()" (click)="toggleListening()">@if(!aiListening()){🎙 Speak}@if(aiListening()){⏹ Stop}</button>
-        </div>
-      </div>
-      @if(aiMessage()) { <div class="msg">{{ aiMessage() }}</div> }
-    </div>
-  } @else {
-    <div class="ai-assist">
-      <label class="ai-label">AI Assist</label>
-      <div class="msg off">Experimental Prompt API unavailable in this browser.</div>
-    </div>
-  }
-  `,
+        @if(aiSupported()) {
+            <div class="ai-assist">
+            <label class="ai-label">AI Assist</label>
+            <div class="row">
+                <textarea rows="2" [disabled]="aiBusy()" [ngModel]="aiInput()" (ngModelChange)="aiInput.set($event)" placeholder="Describe e.g. 'Angular date picker' or speak it..."></textarea>
+                <div class="col actions">
+                <button type="button" class="chip" (click)="runExtraction()" [disabled]="aiBusy()">@if(!aiBusy()){Extract}@if(aiBusy()){…}</button>
+                <button type="button" class="chip" [class.active]="aiListening()" (click)="toggleListening()">@if(!aiListening()){🎙 Speak}@if(aiListening()){⏹ Stop}</button>
+                </div>
+            </div>
+            @if(aiMessage()) { 
+                <div class="msg">{{ aiMessage() }}</div> 
+            }
+            </div>
+        } @else {
+            <div class="ai-assist">
+            <label class="ai-label">AI Assist</label>
+            <div class="msg off">Experimental Prompt API unavailable in this browser.</div>
+            </div>
+        }
+    `,
     styles: [`
     :host { display:block; }
     .ai-assist { margin-top:.75rem; display:flex; flex-direction:column; gap:.4rem; }
@@ -100,17 +102,43 @@ export class AiAssistComponent {
         this.aiBusy.set(true); this.aiMessage.set('Thinking…');
         try {
             const session = await this.ensureSession();
-            const instruction = `Extract a framework (from: ${this.frameworks()?.join(', ')}) and a functionality from the user sentence. ONLY return JSON like {"framework":"","functionality":""}. If unknown use empty strings.`;
+            const instruction = `You are an expert at extracting information from text. Your task is to extract the **functionality** and **framework** from the provided text and return the output as a JSON object.
+                Important Rules:
+                1. The value for 'functionality' and 'framework' must be distinct and not identical.
+                2. The 'functionality' must be a specific component or feature (e.g., 'datepicker', 'charting'). It **must not** be a generic term like 'library', 'component', 'plugin', 'module', 'tool', etc.
+                3. If a specific functionality is not mentioned, set the value of 'functionality' to 'null'.
+
+                Examples:
+                Text: "I want datepicker library in react"
+                Output: {"functionality": "datepicker", "framework": "react"}
+
+                Text: "datepicker component in react"
+                Output: {"functionality": "datepicker", "framework": "react"}
+
+                Text: "I am building a calendar component using moment.js in nodejs"
+                Output: {"functionality": "calendar", "framework": "nodejs"}
+
+                Text: "I want to use the lodash library with vue.js"
+                Output: {"functionality": "lodash", "framework": "vue.js"}
+
+                Text: "angular library for angular"
+                Output: {"functionality": null, "framework": "angular"}
+
+                Text: "What is the best react component for forms?"
+                Output: {"functionality": "forms", "framework": "react"}
+
+                Now, extract the functionality and framework from the following text: `;
             const prompt = `${instruction}\nUser: ${raw}`;
             const out = await session.prompt(prompt);
             let text = typeof out === 'string' ? out : (out?.output ?? '');
             let json: any;
             try { const m = text.match(/\{[\s\S]*\}/); if (m) json = JSON.parse(m[0]); } catch { /* ignore */ }
-            if (!json) json = this.heuristic(raw);
-            let fw: string = (json.framework || json.library || '').trim();
-            let fn: string = (json.functionality || json.feature || '').trim();
-            if (!fw) { fw = this.guessFramework(raw) || fw; }
-            if (!fw || !fn) { this.aiMessage.set('Need both framework & functionality.'); return; }
+            // if (!json) json = this.heuristic(raw);
+            if (!json.framework || !json.functionality) {
+                this.aiMessage.set('Need both framework & functionality. Please try again.'); return;
+            }
+            let fw: string = (json.framework || '').trim();
+            let fn: string = (json.functionality || '').trim();
             this.aiMessage.set(`Captured: ${fw} + ${fn}`);
             this.extracted.emit({ framework: fw, functionality: fn });
         } catch (e: any) {
@@ -139,7 +167,10 @@ export class AiAssistComponent {
             const SR: any = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
             if (!SR) { this.aiMessage.set('Speech not supported.'); return; }
             const rec: SpeechRecognition = new SR();
-            this.speech = rec; rec.continuous = false; rec.interimResults = true; rec.lang = 'en-US';
+            this.speech = rec;
+            rec.continuous = false;
+            rec.interimResults = true;
+            rec.lang = 'en-US';
             rec.onstart = () => {
                 // Start fresh for a new voice query.
                 this.aiInput.set('');
