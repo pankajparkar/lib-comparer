@@ -1,5 +1,6 @@
 import { Component, ChangeDetectionStrategy, signal, input, output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { AiSetupModalComponent } from './ai-setup-modal.component';
 
 // Minimal ambient declarations (avoid TS errors for experimental APIs)
 interface SpeechRecognition extends EventTarget {
@@ -15,9 +16,13 @@ declare const LanguageModel: any; // Experimental global
 
 @Component({
     selector: 'lc-ai-assist',
-    imports: [FormsModule],
+    imports: [FormsModule, AiSetupModalComponent],
     changeDetection: ChangeDetectionStrategy.OnPush,
     template: `
+        @if(showSetupModal()) {
+            <lc-ai-setup-modal (close)="showSetupModal.set(false)"></lc-ai-setup-modal>
+        }
+        
         @if(aiSupported()) {
             <div class="ai-assist">
             <label class="ai-label">AI Assist</label>
@@ -34,8 +39,26 @@ declare const LanguageModel: any; // Experimental global
             </div>
         } @else {
             <div class="ai-assist">
-            <label class="ai-label">AI Assist</label>
-            <div class="msg off">Experimental Prompt API unavailable in this browser.</div>
+                <label class="ai-label">AI Assist</label>
+                @if(hasLanguageModel()) {
+                    <div class="setup-section">
+                        <div class="setup-message">
+                            <div class="setup-icon">🚀</div>
+                            <div class="setup-content">
+                                <h4>AI Assistant Available!</h4>
+                                <p>Enable Chrome's Gemini Prompt API to use AI-powered library detection.</p>
+                            </div>
+                        </div>
+                        <button type="button" class="setup-button" (click)="showSetupModal.set(true)">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                            </svg>
+                            Enable AI Assistant
+                        </button>
+                    </div>
+                } @else {
+                    <div class="msg off">AI Assistant requires Chrome with Gemini Prompt API support.</div>
+                }
             </div>
         }
     `,
@@ -154,6 +177,67 @@ declare const LanguageModel: any; // Experimental global
       padding: 0;
     }
     
+    .setup-section {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-md);
+    }
+    
+    .setup-message {
+      display: flex;
+      align-items: flex-start;
+      gap: var(--space-md);
+      padding: var(--space-lg);
+      background: linear-gradient(135deg, var(--color-primary-light), var(--color-secondary-light));
+      border: 1px solid var(--color-primary);
+      border-radius: var(--radius-lg);
+    }
+    
+    .setup-icon {
+      font-size: var(--font-size-xl);
+      flex-shrink: 0;
+    }
+    
+    .setup-content h4 {
+      margin: 0 0 var(--space-xs);
+      font-size: var(--font-size-base);
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-text);
+    }
+    
+    .setup-content p {
+      margin: 0;
+      font-size: var(--font-size-sm);
+      color: var(--color-text-muted);
+      line-height: var(--line-height-normal);
+    }
+    
+    .setup-button {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-sm);
+      padding: var(--space-md) var(--space-lg);
+      background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+      color: white;
+      border: none;
+      border-radius: var(--radius-lg);
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-semibold);
+      cursor: pointer;
+      transition: all var(--transition-normal);
+      box-shadow: var(--shadow-sm);
+    }
+    
+    .setup-button:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+    
+    .setup-button:active {
+      transform: translateY(0);
+    }
+    
     /* Mobile responsiveness */
     @media (max-width: 640px) {
       .row {
@@ -169,6 +253,11 @@ declare const LanguageModel: any; // Experimental global
       .chip {
         flex: 1;
       }
+      
+      .setup-message {
+        flex-direction: column;
+        text-align: center;
+      }
     }
     
     /* High contrast mode */
@@ -179,6 +268,10 @@ declare const LanguageModel: any; // Experimental global
       .msg {
         border-width: 2px;
       }
+      
+      .setup-button {
+        border: 2px solid var(--color-primary);
+      }
     }
     
     /* Reduced motion */
@@ -186,6 +279,10 @@ declare const LanguageModel: any; // Experimental global
       textarea,
       .chip {
         transition: none;
+      }
+      
+      .setup-button:hover {
+        transform: none;
       }
     }
   `]
@@ -199,6 +296,7 @@ export class AiAssistComponent {
     readonly aiMessage = signal<string | null>(null);
     readonly aiInput = signal('');
     readonly aiListening = signal(false);
+    readonly showSetupModal = signal(false);
 
     private session: any | null = null;
     private speech: SpeechRecognition | null = null;
@@ -207,16 +305,31 @@ export class AiAssistComponent {
         queueMicrotask(() => this.checkSupport());
     }
 
+    readonly hasLanguageModel = signal(false);
+
     private async checkSupport() {
         try {
-            if (!('LanguageModel' in globalThis)) { this.aiSupported.set(false); return; }
+            if (!('LanguageModel' in globalThis)) { 
+                this.hasLanguageModel.set(false);
+                this.aiSupported.set(false); 
+                return; 
+            }
+            
+            this.hasLanguageModel.set(true);
+            
             // Touch params & availability just to confirm
             try { await LanguageModel.params?.(); } catch { /* ignore */ }
             const avail = await LanguageModel.availability?.();
             const status = typeof avail === 'string' ? avail : (avail?.available || '');
-            if (status === 'unavailable' || status === 'no') { this.aiSupported.set(false); return; }
+            if (status === 'unavailable' || status === 'no') { 
+                this.aiSupported.set(false); 
+                return; 
+            }
             this.aiSupported.set(true);
-        } catch { this.aiSupported.set(false); }
+        } catch { 
+            this.hasLanguageModel.set(false);
+            this.aiSupported.set(false); 
+        }
     }
 
     private async ensureSession() {
