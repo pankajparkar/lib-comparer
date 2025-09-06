@@ -1,23 +1,25 @@
 import { Component, ChangeDetectionStrategy, signal, input, output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { AiSetupModalComponent } from './ai-setup-modal.component';
 
 // Minimal ambient declarations (avoid TS errors for experimental APIs)
 interface SpeechRecognition extends EventTarget {
-    start(): void; stop(): void;
-    continuous: boolean; interimResults: boolean; lang: string;
-    onresult: ((this: SpeechRecognition, ev: any) => any) | null;
-    onerror: ((this: SpeechRecognition, ev: any) => any) | null;
-    onend: ((this: SpeechRecognition, ev: any) => any) | null;
-    onstart: ((this: SpeechRecognition, ev: any) => any) | null;
+  start(): void; stop(): void;
+  continuous: boolean; interimResults: boolean; lang: string;
+  onresult: ((this: SpeechRecognition, ev: any) => any) | null;
+  onerror: ((this: SpeechRecognition, ev: any) => any) | null;
+  onend: ((this: SpeechRecognition, ev: any) => any) | null;
+  onstart: ((this: SpeechRecognition, ev: any) => any) | null;
 }
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 declare const LanguageModel: any; // Experimental global
+const isChrome = /Chrome/.test(navigator.userAgent) && /Google Inc/.test(navigator.vendor);
 
 @Component({
-    selector: 'lc-ai-assist',
-    imports: [FormsModule],
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    template: `
+  selector: 'lc-ai-assist',
+  imports: [FormsModule],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `
         @if(aiSupported()) {
             <div class="ai-assist">
             <label class="ai-label">AI Assist</label>
@@ -33,13 +35,18 @@ declare const LanguageModel: any; // Experimental global
             }
             </div>
         } @else {
-            <div class="ai-assist">
+          <div class="ai-assist not-supported">
             <label class="ai-label">AI Assist</label>
-            <div class="msg off">Experimental Prompt API unavailable in this browser.</div>
+            <div class="msg off">
+              Experimental Prompt API unavailable in this browser.
+              @if (isChrome()) {
+                <a class="setup-link" (click)="openAIHelpModal()">Enable Gemini Prompt API</a>
+              }
             </div>
+          </div>
         }
     `,
-    styles: [`
+  styles: [`
     :host { 
       display: block; 
       margin-top: var(--space-lg);
@@ -53,6 +60,11 @@ declare const LanguageModel: any; // Experimental global
       border: 1px solid var(--color-border);
       border-radius: var(--radius-lg);
       padding: var(--space-lg);
+
+      &.not-supported {
+        flex-direction: row;
+        align-items: center;
+      }
     }
     
     .ai-label { 
@@ -154,6 +166,17 @@ declare const LanguageModel: any; // Experimental global
       padding: 0;
     }
     
+    .setup-link {
+      color: var(--color-primary);
+      text-decoration: underline;
+      cursor: pointer;
+      transition: color var(--transition-normal);
+    }
+    
+    .setup-link:hover {
+      color: var(--color-primary-dark);
+    }
+    
     /* Mobile responsiveness */
     @media (max-width: 640px) {
       .row {
@@ -191,54 +214,59 @@ declare const LanguageModel: any; // Experimental global
   `]
 })
 export class AiAssistComponent {
-    frameworks = input<string[]>([]);
-    extracted = output<{ framework: string; functionality: string }>();
+  frameworks = input<string[]>([]);
+  extracted = output<{ framework: string; functionality: string }>();
+  isChrome = signal(isChrome);
 
-    readonly aiSupported = signal(false);
-    readonly aiBusy = signal(false);
-    readonly aiMessage = signal<string | null>(null);
-    readonly aiInput = signal('');
-    readonly aiListening = signal(false);
+  readonly aiSupported = signal(false);
+  readonly aiBusy = signal(false);
+  readonly aiMessage = signal<string | null>(null);
+  readonly aiInput = signal('');
+  readonly aiListening = signal(false);
 
-    private session: any | null = null;
-    private speech: SpeechRecognition | null = null;
+  private session: any | null = null;
+  private speech: SpeechRecognition | null = null;
 
-    constructor() {
-        queueMicrotask(() => this.checkSupport());
+  constructor() {
+    queueMicrotask(() => this.checkSupport());
+  }
+
+  openAIHelpModal() {
+    AiSetupModalComponent.open();
+  }
+
+  private async checkSupport() {
+    try {
+      if (!('LanguageModel' in globalThis)) { this.aiSupported.set(false); return; }
+      // Touch params & availability just to confirm
+      try { await LanguageModel.params?.(); } catch { /* ignore */ }
+      const avail = await LanguageModel.availability?.();
+      const status = typeof avail === 'string' ? avail : (avail?.available || '');
+      if (status === 'unavailable' || status === 'no') { this.aiSupported.set(false); return; }
+      this.aiSupported.set(true);
+    } catch { this.aiSupported.set(false); }
+  }
+
+  private async ensureSession() {
+    if (this.session) return this.session;
+    if (!this.aiSupported()) throw new Error('AI unsupported');
+    // Spec requires providing both temperature & topK or neither. Start with no params; fallback to explicit.
+    try {
+      this.session = await LanguageModel.create();
+    } catch (e) {
+      // Retry with explicit pairing if first attempt fails.
+      this.session = await LanguageModel.create({ temperature: 0, topK: 40 });
     }
+    return this.session;
+  }
 
-    private async checkSupport() {
-        try {
-            if (!('LanguageModel' in globalThis)) { this.aiSupported.set(false); return; }
-            // Touch params & availability just to confirm
-            try { await LanguageModel.params?.(); } catch { /* ignore */ }
-            const avail = await LanguageModel.availability?.();
-            const status = typeof avail === 'string' ? avail : (avail?.available || '');
-            if (status === 'unavailable' || status === 'no') { this.aiSupported.set(false); return; }
-            this.aiSupported.set(true);
-        } catch { this.aiSupported.set(false); }
-    }
-
-    private async ensureSession() {
-        if (this.session) return this.session;
-        if (!this.aiSupported()) throw new Error('AI unsupported');
-        // Spec requires providing both temperature & topK or neither. Start with no params; fallback to explicit.
-        try {
-            this.session = await LanguageModel.create();
-        } catch (e) {
-            // Retry with explicit pairing if first attempt fails.
-            this.session = await LanguageModel.create({ temperature: 0, topK: 40 });
-        }
-        return this.session;
-    }
-
-    async runExtraction() {
-        const raw = this.aiInput().trim();
-        if (!raw) { this.aiMessage.set('Describe what you need.'); return; }
-        this.aiBusy.set(true); this.aiMessage.set('Thinking…');
-        try {
-            const session = await this.ensureSession();
-            const instruction = `You are an expert at extracting information from text. Your task is to extract the **functionality** and **framework** from the provided text and return the output as a JSON object.
+  async runExtraction() {
+    const raw = this.aiInput().trim();
+    if (!raw) { this.aiMessage.set('Describe what you need.'); return; }
+    this.aiBusy.set(true); this.aiMessage.set('Thinking…');
+    try {
+      const session = await this.ensureSession();
+      const instruction = `You are an expert at extracting information from text. Your task is to extract the **functionality** and **framework** from the provided text and return the output as a JSON object.
                 Important Rules:
                 1. The value for 'functionality' and 'framework' must be distinct and not identical.
                 2. The 'functionality' must be a specific component or feature (e.g., 'datepicker', 'charting'). It **must not** be a generic term like 'library', 'component', 'plugin', 'module', 'tool', etc.
@@ -264,74 +292,74 @@ export class AiAssistComponent {
                 Output: {"functionality": "forms", "framework": "react"}
 
                 Now, extract the functionality and framework from the following text: `;
-            const prompt = `${instruction}\nUser: ${raw}`;
-            const out = await session.prompt(prompt);
-            let text = typeof out === 'string' ? out : (out?.output ?? '');
-            let json: any;
-            try { const m = text.match(/\{[\s\S]*\}/); if (m) json = JSON.parse(m[0]); } catch { /* ignore */ }
-            // if (!json) json = this.heuristic(raw);
-            if (!json.framework || !json.functionality) {
-                this.aiMessage.set('Need both framework & functionality. Please try again.'); return;
-            }
-            let fw: string = (json.framework || '').trim();
-            let fn: string = (json.functionality || '').trim();
-            this.aiMessage.set(`Captured: ${fw} + ${fn}`);
-            this.extracted.emit({ framework: fw, functionality: fn });
-        } catch (e: any) {
-            this.aiMessage.set('AI error: ' + (e?.message || e));
-        } finally { this.aiBusy.set(false); }
-    }
+      const prompt = `${instruction}\nUser: ${raw}`;
+      const out = await session.prompt(prompt);
+      let text = typeof out === 'string' ? out : (out?.output ?? '');
+      let json: any;
+      try { const m = text.match(/\{[\s\S]*\}/); if (m) json = JSON.parse(m[0]); } catch { /* ignore */ }
+      // if (!json) json = this.heuristic(raw);
+      if (!json.framework || !json.functionality) {
+        this.aiMessage.set('Need both framework & functionality. Please try again.'); return;
+      }
+      let fw: string = (json.framework || '').trim();
+      let fn: string = (json.functionality || '').trim();
+      this.aiMessage.set(`Captured: ${fw} + ${fn}`);
+      this.extracted.emit({ framework: fw, functionality: fn });
+    } catch (e: any) {
+      this.aiMessage.set('AI error: ' + (e?.message || e));
+    } finally { this.aiBusy.set(false); }
+  }
 
-    private heuristic(text: string) {
-        const lower = text.toLowerCase();
-        const fw = this.frameworks()?.find(f => lower.includes(f.toLowerCase())) || '';
-        let functionality = '';
-        if (fw) {
-            const idx = lower.indexOf(fw.toLowerCase());
-            functionality = text.slice(idx + fw.length).replace(/^(for|to|with|library|component)/i, '').trim();
-        } else {
-            const m = lower.match(/for ([a-z0-9 \-]+)/i) || lower.match(/to ([a-z0-9 \-]+)/i);
-            if (m) functionality = m[1].trim();
+  private heuristic(text: string) {
+    const lower = text.toLowerCase();
+    const fw = this.frameworks()?.find(f => lower.includes(f.toLowerCase())) || '';
+    let functionality = '';
+    if (fw) {
+      const idx = lower.indexOf(fw.toLowerCase());
+      functionality = text.slice(idx + fw.length).replace(/^(for|to|with|library|component)/i, '').trim();
+    } else {
+      const m = lower.match(/for ([a-z0-9 \-]+)/i) || lower.match(/to ([a-z0-9 \-]+)/i);
+      if (m) functionality = m[1].trim();
+    }
+    return { framework: fw, functionality };
+  }
+  private guessFramework(text: string) { return this.frameworks()?.find(f => new RegExp(`\\b${f.replace(/[-/\\]/g, '\\$&')}\\b`, 'i').test(text)); }
+
+  toggleListening() {
+    if (this.aiListening()) { this.stopListening(); return; }
+    try {
+      const SR: any = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      if (!SR) { this.aiMessage.set('Speech not supported.'); return; }
+      const rec: SpeechRecognition = new SR();
+      this.speech = rec;
+      rec.continuous = false;
+      rec.interimResults = true;
+      rec.lang = 'en-US';
+      rec.onstart = () => {
+        // Start fresh for a new voice query.
+        this.aiInput.set('');
+        this.aiListening.set(true);
+        this.aiMessage.set('Listening…');
+      };
+      rec.onerror = (e: any) => { this.aiMessage.set('Mic error: ' + (e?.error || 'unknown')); this.aiListening.set(false); };
+      rec.onend = () => {
+        this.aiListening.set(false);
+        // Auto-run extraction after a brief tick so final results are applied.
+        const text = this.aiInput().trim();
+        if (text && !this.aiBusy()) {
+          this.aiMessage.set('Processing voice input…');
+          setTimeout(() => { if (this.aiInput().trim()) this.runExtraction(); }, 60);
+        } else if (!text) {
+          this.aiMessage.set('No speech captured.');
         }
-        return { framework: fw, functionality };
-    }
-    private guessFramework(text: string) { return this.frameworks()?.find(f => new RegExp(`\\b${f.replace(/[-/\\]/g, '\\$&')}\\b`, 'i').test(text)); }
-
-    toggleListening() {
-        if (this.aiListening()) { this.stopListening(); return; }
-        try {
-            const SR: any = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-            if (!SR) { this.aiMessage.set('Speech not supported.'); return; }
-            const rec: SpeechRecognition = new SR();
-            this.speech = rec;
-            rec.continuous = false;
-            rec.interimResults = true;
-            rec.lang = 'en-US';
-            rec.onstart = () => {
-                // Start fresh for a new voice query.
-                this.aiInput.set('');
-                this.aiListening.set(true);
-                this.aiMessage.set('Listening…');
-            };
-            rec.onerror = (e: any) => { this.aiMessage.set('Mic error: ' + (e?.error || 'unknown')); this.aiListening.set(false); };
-            rec.onend = () => {
-                this.aiListening.set(false);
-                // Auto-run extraction after a brief tick so final results are applied.
-                const text = this.aiInput().trim();
-                if (text && !this.aiBusy()) {
-                    this.aiMessage.set('Processing voice input…');
-                    setTimeout(() => { if (this.aiInput().trim()) this.runExtraction(); }, 60);
-                } else if (!text) {
-                    this.aiMessage.set('No speech captured.');
-                }
-            };
-            rec.onresult = (ev: any) => {
-                let final = '';
-                for (let i = ev.resultIndex; i < ev.results.length; i++) { const r = ev.results[i]; if (r.isFinal) final += r[0].transcript; }
-                if (final) this.aiInput.set((this.aiInput() + ' ' + final).trim());
-            };
-            rec.start();
-        } catch (e: any) { this.aiMessage.set('Mic start failed: ' + (e?.message || e)); }
-    }
-    private stopListening() { try { this.speech?.stop(); } catch { } }
+      };
+      rec.onresult = (ev: any) => {
+        let final = '';
+        for (let i = ev.resultIndex; i < ev.results.length; i++) { const r = ev.results[i]; if (r.isFinal) final += r[0].transcript; }
+        if (final) this.aiInput.set((this.aiInput() + ' ' + final).trim());
+      };
+      rec.start();
+    } catch (e: any) { this.aiMessage.set('Mic start failed: ' + (e?.message || e)); }
+  }
+  private stopListening() { try { this.speech?.stop(); } catch { } }
 }

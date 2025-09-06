@@ -6,7 +6,7 @@ import { Component, ChangeDetectionStrategy, input } from '@angular/core';
   template: `
     <nav class="navbar">
       <div class="navbar-brand">
-        <img [src]="logoSrc()" [alt]="title()" width="28" height="28" />
+        <span class="brand-logo" aria-hidden="true"></span>
         <span class="brand-text">{{ title() }}</span>
       </div>
       
@@ -53,12 +53,19 @@ import { Component, ChangeDetectionStrategy, input } from '@angular/core';
       text-decoration: none;
     }
     
-    .navbar-brand img {
+    /* Themed brand logo using mask + CSS variables */
+    .brand-logo {
+      display: inline-block;
+      width: 28px;
+      height: 28px;
+      background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+      -webkit-mask: url('/logo.svg') no-repeat center / contain;
+      mask: url('/logo.svg') no-repeat center / contain;
       border-radius: var(--radius-sm);
       transition: transform var(--transition-normal);
     }
     
-    .navbar-brand:hover img {
+    .navbar-brand:hover .brand-logo {
       transform: scale(1.05);
     }
     
@@ -130,10 +137,7 @@ import { Component, ChangeDetectionStrategy, input } from '@angular/core';
         display: none;
       }
       
-      .navbar-brand img {
-        width: 24px;
-        height: 24px;
-      }
+  .brand-logo { width: 24px; height: 24px; }
     }
     
     /* High contrast mode */
